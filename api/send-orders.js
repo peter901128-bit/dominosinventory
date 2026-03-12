@@ -22,15 +22,23 @@ function isAuthenticated(req) {
 
 const SENDER = 'peter901128@gmail.com';
 
-function buildBody(items) {
-  const lines = ['[재고 발주 안내]', '', '아래 품목은 재고 부족으로 발주를 권장합니다.', ''];
-  items.forEach((row, i) => {
-    const unit = row.단위 ? ` (${row.단위})` : '';
-    lines.push(`${i + 1}. ${row.품목 || ''}${unit}`);
-    lines.push(`   - 현재고: ${row.현재고}, 최소고: ${row.최소고}, 발주 권장: ${row.발주권장}`);
-    if (row.공급처) lines.push(`   - 공급처: ${row.공급처}`);
-    lines.push('');
-  });
+/** 항목 1개당 메일 본문 (인삿말 + 필요 수량만큼 추가 발주 요청) */
+function buildBodyForItem(row) {
+  const unit = row.단위 ? ` (${row.단위})` : '';
+  const lines = [
+    '안녕하세요.',
+    '',
+    '재고 관리 담당자입니다. 재고 부족 품목에 대해 추가 발주를 요청드립니다.',
+    '',
+    '■ 품목: ' + (row.품목 || '') + unit,
+    '■ 현재고: ' + row.현재고,
+    '■ 최소고: ' + row.최소고,
+    '■ 발주 권장 수량: ' + row.발주권장,
+    '',
+    '위 필요 수량(' + row.발주권장 + (row.단위 ? row.단위 : '개') + ')만큼 추가 발주 요청드립니다.',
+    '',
+    '감사합니다.',
+  ];
   return lines.join('\n');
 }
 
@@ -70,15 +78,17 @@ module.exports = async (req, res) => {
     secure: false,
     auth: { user: SENDER, pass: password },
   });
-  const text = buildBody(items);
   try {
-    await transporter.sendMail({
-      from: SENDER,
-      to: toEmails.join(', '),
-      subject: '[재고 발주] 발주 권장 품목 안내',
-      text,
-    });
-    res.status(200).json({ ok: true, sent_to: toEmails });
+    for (const row of items) {
+      const text = buildBodyForItem(row);
+      await transporter.sendMail({
+        from: SENDER,
+        to: toEmails.join(', '),
+        subject: '[재고 발주] ' + (row.품목 || '품목') + ' - 추가 발주 요청',
+        text,
+      });
+    }
+    res.status(200).json({ ok: true, sent_to: toEmails, count: items.length });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message || '메일 발송 실패' });
   }
