@@ -77,6 +77,23 @@
     .summary .badge.blue { background: rgba(0,102,204,0.12); color: var(--domino-blue); }
     .summary .badge.red { background: rgba(227,24,55,0.12); color: var(--domino-red); }
     .summary .badge.green { background: rgba(13,138,62,0.12); color: var(--success); }
+    .dashboard-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .dashboard-summary .summary-tile {
+      background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.25rem; text-align: center; box-shadow: var(--shadow);
+    }
+    .dashboard-summary .summary-tile .value { font-size: 1.75rem; font-weight: 800; color: var(--domino-blue); display: block; }
+    .dashboard-summary .summary-tile .label { font-size: 0.85rem; color: var(--text-muted); font-weight: 700; margin-top: 0.25rem; }
+    .supplier-cards { display: flex; flex-direction: column; gap: 1rem; }
+    .supplier-card {
+      background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.25rem; box-shadow: var(--shadow); display: grid;
+      grid-template-columns: 1fr auto auto auto; align-items: center; gap: 1rem;
+    }
+    .supplier-card .supplier-email { flex: 1; min-width: 0; padding: 0.5rem 0.6rem; font-size: 0.9rem; border: 1px solid var(--border); border-radius: 4px; }
+    .supplier-card .supplier-stat { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+    .supplier-card .supplier-stat span { color: var(--text-muted); font-weight: 600; font-size: 0.8rem; }
+    @media (max-width: 640px) { .supplier-card { grid-template-columns: 1fr; } .dashboard-summary { grid-template-columns: 1fr; } .supplier-card .btn-send-supplier { grid-column: 1; } }
     table.inventory { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-weight: 600; }
     table.inventory th, table.inventory td { padding: 0.7rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
     table.inventory th { color: var(--text-muted); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -159,9 +176,9 @@
       </div>
       <div class="card hidden" id="resultCard">
         <h2>2. 분석 결과 대시보드</h2>
-        <div class="summary" id="summary"></div>
+        <div id="summary" class="dashboard-summary hidden"></div>
         <div id="lowStockSection" class="hidden">
-          <div id="lowStockBody" class="dashboard"></div>
+          <div id="lowStockBody" class="supplier-cards"></div>
           <div id="sendMsg" class="msg hidden" style="margin-top:1rem;"></div>
         </div>
         <p id="noLowStock" class="msg info hidden">재고 부족 품목이 없습니다.</p>
@@ -289,31 +306,41 @@
         lowStock.forEach(function (r) {
           r.발주권장 = Math.max(r.최소고 - r.현재고, r.발주수량 || 0);
         });
-        lastResult = { ok: true, low_stock: lowStock, summary: { 전체_품목수: list.length, 부족_품목수: lowStock.length, 정상_품목수: list.length - lowStock.length } };
+        var byEmail = {};
+        lowStock.forEach(function (r) {
+          var email = (r.이메일 || '').trim() || 'peter901128@gmail.com';
+          if (!byEmail[email]) byEmail[email] = [];
+          byEmail[email].push(r);
+        });
+        var supplierList = Object.keys(byEmail).map(function (email) {
+          return { email: email, items: byEmail[email] };
+        });
+        lastResult = {
+          ok: true,
+          low_stock: lowStock,
+          supplierList: supplierList,
+          summary: { 전체_품목수: list.length, 부족_품목수: lowStock.length, 발주_거래처수: supplierList.length }
+        };
         resultCard.classList.remove('hidden');
         var sum = lastResult.summary;
-        summaryEl.innerHTML = '<span class="badge blue">전체 ' + sum.전체_품목수 + '개</span><span class="badge red">재고 부족 ' + sum.부족_품목수 + '개</span><span class="badge green">정상 ' + sum.정상_품목수 + '개</span>';
+        summaryEl.classList.remove('hidden');
+        summaryEl.innerHTML =
+          '<div class="summary-tile"><span class="value">' + sum.전체_품목수 + '</span><span class="label">총 품목</span></div>' +
+          '<div class="summary-tile"><span class="value">' + sum.부족_품목수 + '</span><span class="label">발주 필요</span></div>' +
+          '<div class="summary-tile"><span class="value">' + sum.발주_거래처수 + '</span><span class="label">발주 거래처</span></div>';
         if (lowStock.length === 0) {
           lowStockSection.classList.add('hidden');
           noLowStock.classList.remove('hidden');
         } else {
           lowStockSection.classList.remove('hidden');
           noLowStock.classList.add('hidden');
-          lowStockBody.innerHTML = lowStock.map(function (row, idx) {
-            var email = (row.이메일 || '').trim() || 'peter901128@gmail.com';
-            var icon = getIcon(row.품목);
-            return '<div class="dashboard-card" data-idx="' + idx + '">' +
-              '<div class="card-head">' +
-              '<span class="card-icon">' + icon + '</span>' +
-              '<span class="card-title">' + escapeHtml(row.품목) + '</span>' +
-              '</div>' +
-              '<div class="card-stats">' +
-              '<div class="stat low"><span>현재고</span>' + row.현재고 + '</div>' +
-              '<div class="stat"><span>최소고</span>' + row.최소고 + '</div>' +
-              '<div class="stat"><span>발주 권장</span>' + row.발주권장 + '</div>' +
-              '</div>' +
-              '<input type="text" class="supplier-email" placeholder="발주처 이메일" value="' + escapeHtml(email) + '" data-idx="' + idx + '">' +
-              '<button type="button" class="btn btn-red btn-row" data-idx="' + idx + '">발주처에게 보내기</button>' +
+          lowStockBody.innerHTML = supplierList.map(function (sup, idx) {
+            var totalQty = sup.items.reduce(function (s, i) { return s + (i.발주권장 || 0); }, 0);
+            return '<div class="supplier-card" data-supplier-idx="' + idx + '">' +
+              '<input type="text" class="supplier-email" placeholder="발주처 이메일" value="' + escapeHtml(sup.email) + '" data-supplier-idx="' + idx + '">' +
+              '<div class="supplier-stat">발주 품목 수 <span>' + sup.items.length + '개</span></div>' +
+              '<div class="supplier-stat">총 권장 발주량 <span>' + totalQty + '</span></div>' +
+              '<button type="button" class="btn btn-red btn-send-supplier" data-supplier-idx="' + idx + '">이메일 발송</button>' +
               '</div>';
           }).join('');
         }
@@ -334,16 +361,16 @@
       btnAnalyze.addEventListener('click', analyze);
 
       lowStockSection.addEventListener('click', function (e) {
-        var btn = e.target && e.target.closest('.btn-row');
-        if (!btn || !lastResult || !lastResult.low_stock) return;
-        var idx = parseInt(btn.getAttribute('data-idx'), 10);
-        var row = lastResult.low_stock[idx];
-        if (!row) return;
-        var card = document.querySelector('#lowStockBody .dashboard-card[data-idx="' + idx + '"]');
+        var btn = e.target && e.target.closest('.btn-send-supplier');
+        if (!btn || !lastResult || !lastResult.supplierList) return;
+        var idx = parseInt(btn.getAttribute('data-supplier-idx'), 10);
+        var supplier = lastResult.supplierList[idx];
+        if (!supplier || !supplier.items || supplier.items.length === 0) return;
+        var card = document.querySelector('#lowStockBody .supplier-card[data-supplier-idx="' + idx + '"]');
         var emailInput = card && card.querySelector('.supplier-email');
         var toEmail = (emailInput && emailInput.value || '').trim();
         if (!toEmail || toEmail.indexOf('@') === -1) {
-          showMsg(sendMsg, '해당 품목의 발주처 이메일을 입력하세요.', 'error');
+          showMsg(sendMsg, '해당 발주처 이메일을 입력하세요.', 'error');
           return;
         }
         hideMsg(sendMsg);
@@ -352,15 +379,15 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ items: [row], extra_to: [toEmail] })
+          body: JSON.stringify({ items: supplier.items, extra_to: [toEmail] })
         })
           .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
           .then(function (r) {
             if (r.ok) {
               btn.textContent = '발송 완료';
-              btn.className = 'btn btn-done btn-row';
+              btn.className = 'btn btn-done btn-send-supplier';
               btn.disabled = true;
-              showMsg(sendMsg, '"' + row.품목 + '" 발주 메일을 ' + toEmail + ' 로 보냈습니다.', 'success');
+              showMsg(sendMsg, toEmail + ' 로 ' + supplier.items.length + '개 품목 발주 메일을 보냈습니다.', 'success');
             } else {
               showMsg(sendMsg, (r.data && r.data.error) || '발송 실패', 'error');
             }
