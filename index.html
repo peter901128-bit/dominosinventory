@@ -284,7 +284,7 @@
           lowStockSection.classList.remove('hidden');
           noLowStock.classList.add('hidden');
           lowStockBody.innerHTML = lowStock.map(function (row, idx) {
-            var email = (row.이메일 || '').trim();
+            var email = (row.이메일 || '').trim() || 'peter901128@gmail.com';
             return '<tr data-idx="' + idx + '">' +
               '<td>' + escapeHtml(row.품목) + '</td>' +
               '<td class="low">' + row.현재고 + '</td>' +
