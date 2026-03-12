@@ -66,10 +66,11 @@
     .btn-done:hover { filter: none; transform: none; }
     .btn-row { white-space: nowrap; padding: 0.4rem 0.75rem; font-size: 0.85rem; }
     table.inventory .supplier-email { min-width: 180px; padding: 0.4rem 0.5rem; font-size: 0.9rem; border: 1px solid var(--border); border-radius: 4px; }
-    table.input-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-weight: 600; }
-    table.input-table th, table.input-table td { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
-    table.input-table th { color: var(--text-muted); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
-    table.input-table input.qty { width: 100%; max-width: 100px; text-align: right; padding: 0.5rem; border: 2px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; }
+    .table-wrap { overflow-x: auto; }
+    table.input-table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 0.85rem; font-weight: 600; }
+    table.input-table th, table.input-table td { padding: 0.5rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+    table.input-table th { color: var(--text-muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+    table.input-table input.qty { width: 70px; text-align: right; padding: 0.4rem; border: 2px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; }
     table.input-table .readonly-cell { color: var(--text-muted); }
     .toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
     .summary { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
@@ -96,13 +97,15 @@
     .supplier-cards { display: flex; flex-direction: column; gap: 1rem; }
     .supplier-card {
       background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 1.25rem; box-shadow: var(--shadow); display: grid;
-      grid-template-columns: 1fr 1fr auto auto auto; align-items: center; gap: 1rem;
+      padding: 1rem; box-shadow: var(--shadow); display: grid;
+      grid-template-columns: 1fr 0.8fr 0.6fr 1fr 1.2fr auto auto auto; align-items: center; gap: 0.75rem;
     }
-    .supplier-card .supplier-name { min-width: 0; padding: 0.5rem 0.6rem; font-size: 0.9rem; border: 1px solid var(--border); border-radius: 4px; }
-    .supplier-card .supplier-email { min-width: 0; padding: 0.5rem 0.6rem; font-size: 0.9rem; border: 1px solid var(--border); border-radius: 4px; }
-    .supplier-card .supplier-stat { font-size: 0.9rem; font-weight: 700; color: var(--text); white-space: nowrap; }
-    .supplier-card .supplier-stat span { color: var(--text-muted); font-weight: 600; font-size: 0.8rem; }
+    .supplier-card .supplier-name, .supplier-card .supplier-contact, .supplier-card .supplier-email { min-width: 0; padding: 0.45rem 0.5rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 4px; }
+    .supplier-card .supplier-meta { font-size: 0.8rem; color: var(--text-muted); }
+    .supplier-card .supplier-meta strong { color: var(--text); }
+    .supplier-card .supplier-stat { font-size: 0.85rem; font-weight: 700; color: var(--text); white-space: nowrap; }
+    .supplier-card .supplier-stat span { color: var(--text-muted); font-weight: 600; font-size: 0.75rem; }
+    @media (max-width: 900px) { .supplier-card { grid-template-columns: 1fr 1fr 1fr; } .supplier-card .supplier-name { grid-column: 1; } .supplier-card .supplier-contact { grid-column: 2; } .supplier-card .supplier-email { grid-column: 3; } .supplier-card .supplier-meta, .supplier-card .supplier-stat { grid-column: span 1; } .supplier-card .btn-send-supplier { grid-column: 1 / -1; } }
     @media (max-width: 640px) { .supplier-card { grid-template-columns: 1fr; } .dashboard-summary { grid-template-columns: 1fr; } .supplier-card .btn-send-supplier { grid-column: 1; } }
     table.inventory { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-weight: 600; }
     table.inventory th, table.inventory td { padding: 0.7rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
@@ -167,18 +170,27 @@
     </header>
     <div class="container">
       <div class="card">
-        <h2>1. 재고 수량 입력</h2>
-        <p style="font-size:0.9rem; color: var(--text-muted); margin-bottom:1rem; font-weight:600;">제품별로 <strong>현재 수량만</strong> 입력한 뒤 분석하기를 누르세요.</p>
+        <h2>1. 재고 수량 입력 (Inventory)</h2>
+        <p style="font-size:0.9rem; color: var(--text-muted); margin-bottom:1rem; font-weight:600;">제품별 <strong>현재재고</strong>만 입력한 뒤 분석하기를 누르세요. 안전재고·MOQ·거래처 등은 기준 데이터입니다.</p>
+        <div class="table-wrap">
         <table class="input-table">
           <thead>
             <tr>
-              <th>품목</th>
-              <th>최소고</th>
+              <th>재료명</th>
+              <th>규격</th>
+              <th>단위</th>
+              <th>안전재고</th>
+              <th>MOQ</th>
+              <th>거래처</th>
+              <th>담당자</th>
+              <th>리드타임(일)</th>
+              <th>품목군</th>
               <th>현재 수량</th>
             </tr>
           </thead>
           <tbody id="itemsBody"></tbody>
         </table>
+        </div>
         <div class="toolbar">
           <button type="button" class="btn btn-blue" id="btnAnalyze">분석하기</button>
         </div>
@@ -208,16 +220,16 @@
       };
       function getIcon(name) { return ITEM_ICONS[name] || '📦'; }
       var DEFAULT_PRODUCTS = [
-        { 품목: '도우볼', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
-        { 품목: '토마토소스', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
-        { 품목: '모짜렐라치즈', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
-        { 품목: '페퍼로니', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
-        { 품목: '베이컨', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
-        { 품목: '양파', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
-        { 품목: '피망', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
-        { 품목: '양송이버섯', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
-        { 품목: '블랙올리브', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
-        { 품목: '스위트콘', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' }
+        { 품목코드: 'ING001', 품목: '도우볼', 규격: '220g', 단위: '개', 안전재고: 180, MOQ: 100, 거래처: '도미노푸드서플라이', 담당자: '점포 운영매니저', 거래처이메일: 'liszzm@naver.com', 리드타임: 2, 품목군: '도우/소스/치즈' },
+        { 품목코드: 'ING002', 품목: '토마토소스', 규격: '3kg', 단위: '팩', 안전재고: 20, MOQ: 10, 거래처: '도미노푸드서플라이', 담당자: '점포 운영매니저', 거래처이메일: 'liszzm@naver.com', 리드타임: 2, 품목군: '도우/소스/치즈' },
+        { 품목코드: 'ING003', 품목: '모짜렐라치즈', 규격: '2kg', 단위: '봉', 안전재고: 18, MOQ: 10, 거래처: '도미노푸드서플라이', 담당자: '점포 운영매니저', 거래처이메일: 'liszzm@naver.com', 리드타임: 2, 품목군: '도우/소스/치즈' },
+        { 품목코드: 'ING004', 품목: '페퍼로니', 규격: '1kg', 단위: '팩', 안전재고: 12, MOQ: 8, 거래처: '프레시미트코리아', 담당자: '점포 운영매니저', 거래처이메일: 'liszzm@naver.com', 리드타임: 3, 품목군: '페퍼로니/베이컨' },
+        { 품목코드: 'ING005', 품목: '베이컨', 규격: '1kg', 단위: '팩', 안전재고: 10, MOQ: 10, 거래처: '프레시미트코리아', 담당자: '점포 운영매니저', 거래처이메일: 'liszzm@naver.com', 리드타임: 3, 품목군: '페퍼로니/베이컨' },
+        { 품목코드: 'ING006', 품목: '양파', 규격: '5kg', 단위: '봉', 안전재고: 12, MOQ: 6, 거래처: '그린베지유통', 담당자: '점포 운영매니저', 거래처이메일: 'liszzm@naver.com', 리드타임: 1, 품목군: '양파/피망/버섯' },
+        { 품목코드: 'ING007', 품목: '피망', 규격: '5kg', 단위: '봉', 안전재고: 8, MOQ: 5, 거래처: '그린베지유통', 담당자: '점포 운영매니저', 거래처이메일: 'liszzm@naver.com', 리드타임: 1, 품목군: '양파/피망/버섯' },
+        { 품목코드: 'ING008', 품목: '양송이버섯', 규격: '2.5kg', 단위: '캔', 안전재고: 6, MOQ: 6, 거래처: '그린베지유통', 담당자: '점포 운영매니저', 거래처이메일: 'liszzm@naver.com', 리드타임: 1, 품목군: '양파/피망/버섯' },
+        { 품목코드: 'ING009', 품목: '블랙올리브', 규격: '3kg', 단위: '캔', 안전재고: 8, MOQ: 4, 거래처: '토핑솔루션', 담당자: '점포 운영매니저', 거래처이메일: 'liszzm@naver.com', 리드타임: 2, 품목군: '올리브/콘' },
+        { 품목코드: 'ING010', 품목: '스위트콘', 규격: '3kg', 단위: '캔', 안전재고: 5, MOQ: 6, 거래처: '토핑솔루션', 담당자: '점포 운영매니저', 거래처이메일: 'liszzm@naver.com', 리드타임: 2, 품목군: '올리브/콘' }
       ];
 
       var loginScreen = document.getElementById('loginScreen');
@@ -298,7 +310,14 @@
           var icon = getIcon(item.품목);
           return '<tr data-idx="' + i + '">' +
             '<td class="readonly-cell"><span class="item-icon">' + icon + '</span> ' + escapeHtml(item.품목) + '</td>' +
-            '<td class="readonly-cell">' + item.최소고 + '</td>' +
+            '<td class="readonly-cell">' + escapeHtml(item.규격 || '') + '</td>' +
+            '<td class="readonly-cell">' + escapeHtml(item.단위 || '') + '</td>' +
+            '<td class="readonly-cell">' + (item.안전재고 ?? '') + '</td>' +
+            '<td class="readonly-cell">' + (item.MOQ ?? '') + '</td>' +
+            '<td class="readonly-cell">' + escapeHtml(item.거래처 || '') + '</td>' +
+            '<td class="readonly-cell">' + escapeHtml(item.담당자 || '') + '</td>' +
+            '<td class="readonly-cell">' + (item.리드타임 ?? '') + '</td>' +
+            '<td class="readonly-cell">' + escapeHtml(item.품목군 || '') + '</td>' +
             '<td><input type="number" class="qty" name="현재수량" min="0" placeholder="0" data-idx="' + i + '"></td>' +
             '</tr>';
         }).join('');
@@ -309,8 +328,9 @@
           var input = document.querySelector('#itemsBody input[data-idx="' + i + '"]');
           var 현재고 = input ? toNum(input.value) : 0;
           list.push({
-            품목: item.품목, 단위: item.단위, 현재고: 현재고, 최소고: item.최소고,
-            발주수량: item.발주수량, 이메일: item.이메일, 공급처: item.공급처
+            품목코드: item.품목코드, 품목: item.품목, 규격: item.규격, 단위: item.단위,
+            현재고: 현재고, 안전재고: item.안전재고, MOQ: item.MOQ,
+            거래처: item.거래처, 담당자: item.담당자, 거래처이메일: item.거래처이메일, 리드타임: item.리드타임, 품목군: item.품목군
           });
         });
         return list;
@@ -318,18 +338,28 @@
       function analyze() {
         hideMsg(analyzeMsg);
         var list = getInputData();
-        var lowStock = list.filter(function (r) { return r.현재고 < r.최소고; });
+        var lowStock = list.filter(function (r) { return r.현재고 < (r.안전재고 || 0); });
         lowStock.forEach(function (r) {
-          r.발주권장 = Math.max(r.최소고 - r.현재고, r.발주수량 || 0);
+          var shortage = (r.안전재고 || 0) - r.현재고;
+          r.발주권장 = Math.max(r.MOQ || 0, shortage);
         });
         var byEmail = {};
         lowStock.forEach(function (r) {
-          var email = (r.이메일 || '').trim() || 'peter901128@gmail.com';
+          var email = (r.거래처이메일 || '').trim() || 'liszzm@naver.com';
           if (!byEmail[email]) byEmail[email] = [];
           byEmail[email].push(r);
         });
         var supplierList = Object.keys(byEmail).map(function (email) {
-          return { email: email, items: byEmail[email] };
+          var items = byEmail[email];
+          var first = items[0];
+          return {
+            email: email,
+            거래처명: first.거래처 || '',
+            담당자: first.담당자 || '',
+            리드타임: first.리드타임 != null ? first.리드타임 : '',
+            품목군: first.품목군 || '',
+            items: items
+          };
         });
         lastResult = {
           ok: true,
@@ -352,15 +382,18 @@
           lowStockItemsSection.classList.remove('hidden');
           lowStockItemsList.innerHTML = lowStock.map(function (row) {
             var icon = getIcon(row.품목);
-            return '<span class="low-stock-tag"><span class="tag-icon">' + icon + '</span>' + escapeHtml(row.품목) + ' (권장 ' + row.발주권장 + ')</span>';
+            var info = row.품목 + ' | 현재 ' + row.현재고 + (row.단위 || '') + ' / 안전 ' + row.안전재고 + ' / MOQ ' + (row.MOQ || '') + ' | 권장발주 ' + row.발주권장 + (row.단위 || '');
+            return '<span class="low-stock-tag" title="' + escapeHtml(info) + '"><span class="tag-icon">' + icon + '</span> ' + escapeHtml(row.품목) + ' · ' + (row.거래처 || '') + ' · ' + (row.품목군 || '') + ' (권장 ' + row.발주권장 + (row.단위 || '') + ')</span>';
           }).join('');
           lowStockSection.classList.remove('hidden');
           noLowStock.classList.add('hidden');
           lowStockBody.innerHTML = supplierList.map(function (sup, idx) {
             var totalQty = sup.items.reduce(function (s, i) { return s + (i.발주권장 || 0); }, 0);
-            var defaultName = (sup.email || '').split('@')[0] || '발주처';
             return '<div class="supplier-card" data-supplier-idx="' + idx + '">' +
-              '<input type="text" class="supplier-name" placeholder="업체명" value="' + escapeHtml(defaultName) + '" data-supplier-idx="' + idx + '">' +
+              '<input type="text" class="supplier-name" placeholder="거래처명" value="' + escapeHtml(sup.거래처명) + '" data-supplier-idx="' + idx + '">' +
+              '<input type="text" class="supplier-contact" placeholder="담당자" value="' + escapeHtml(sup.담당자) + '" data-supplier-idx="' + idx + '">' +
+              '<span class="supplier-meta">리드타임 <strong>' + (sup.리드타임 !== '' ? sup.리드타임 + '일' : '-') + '</strong></span>' +
+              '<span class="supplier-meta">품목군 <strong>' + escapeHtml(sup.품목군) + '</strong></span>' +
               '<input type="text" class="supplier-email" placeholder="이메일" value="' + escapeHtml(sup.email) + '" data-supplier-idx="' + idx + '">' +
               '<div class="supplier-stat">발주품목 수 <span>' + sup.items.length + '개</span></div>' +
               '<div class="supplier-stat">권장발주량 <span>' + totalQty + '</span></div>' +
@@ -392,18 +425,29 @@
         if (!supplier || !supplier.items || supplier.items.length === 0) return;
         var card = document.querySelector('#lowStockBody .supplier-card[data-supplier-idx="' + idx + '"]');
         var emailInput = card && card.querySelector('.supplier-email');
+        var nameInput = card && card.querySelector('.supplier-name');
+        var contactInput = card && card.querySelector('.supplier-contact');
         var toEmail = (emailInput && emailInput.value || '').trim();
+        var supplierName = (nameInput && nameInput.value || '').trim() || supplier.거래처명 || '발주처';
         if (!toEmail || toEmail.indexOf('@') === -1) {
           showMsg(sendMsg, '해당 발주처 이메일을 입력하세요.', 'error');
           return;
         }
         hideMsg(sendMsg);
         btn.disabled = true;
+        var orderDate = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
         fetch('/api/send-orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ items: supplier.items, extra_to: [toEmail] })
+          body: JSON.stringify({
+            items: supplier.items,
+            extra_to: [toEmail],
+            store_name: '점포',
+            supplier_name: supplierName,
+            order_date: orderDate,
+            internal_owner: (contactInput && contactInput.value || '').trim() || '점포 운영매니저'
+          })
         })
           .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
           .then(function (r) {

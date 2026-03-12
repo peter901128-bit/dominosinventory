@@ -22,48 +22,46 @@ function isAuthenticated(req) {
 
 const SENDER = 'peter901128@gmail.com';
 
-/** 항목 1개당 메일 본문 (인삿말 + 필요 수량만큼 추가 발주 요청) */
-function buildBodyForItem(row) {
-  const unit = row.단위 ? ` (${row.단위})` : '';
-  const lines = [
-    '안녕하세요.',
-    '',
-    '재고 관리 담당자입니다. 재고 부족 품목에 대해 추가 발주를 요청드립니다.',
-    '',
-    '■ 품목: ' + (row.품목 || '') + unit,
-    '■ 현재고: ' + row.현재고,
-    '■ 최소고: ' + row.최소고,
-    '■ 발주 권장 수량: ' + row.발주권장,
-    '',
-    '위 필요 수량(' + row.발주권장 + (row.단위 ? row.단위 : '개') + ')만큼 추가 발주 요청드립니다.',
-    '',
-    '감사합니다.',
-  ];
-  return lines.join('\n');
+/** Email Template 시트 기준: 본문 템플릿
+ * 안녕하세요 {{SUPPLIER_NAME}} 담당자님.
+ * 도미노피자 {{STORE_NAME}}입니다.
+ * 아래 품목에 대해 발주 요청드립니다.
+ * {{ITEM_LIST}}
+ * 첨부한 발주서 확인 부탁드립니다.
+ * 감사합니다.
+ * {{INTERNAL_OWNER}}
+ */
+function buildItemList(rows) {
+  return rows
+    .map((row) => {
+      const u = row.단위 || '개';
+      return `· ${row.품목 || ''} (${row.규격 || ''}) | 현재고 ${row.현재고}${u} / 안전재고 ${row.안전재고 || ''}${u} → 발주 권장 ${row.발주권장}${u}`;
+    })
+    .join('\n');
 }
 
-/** 여러 항목을 한 메일 본문으로 */
-function buildBodyForItems(rows) {
-  const header = [
-    '안녕하세요.',
+function buildEmailFromTemplate(opts) {
+  const storeName = opts.store_name || '점포';
+  const supplierName = opts.supplier_name || '발주처';
+  const orderDate = opts.order_date || new Date().toLocaleDateString('ko-KR');
+  const itemList = buildItemList(opts.items || []);
+  const internalOwner = opts.internal_owner || '점포 운영매니저';
+
+  const subject = `[발주요청] ${storeName} / ${supplierName} / ${orderDate}`;
+  const body = [
+    `안녕하세요 ${supplierName} 담당자님.`,
     '',
-    '재고 관리 담당자입니다. 재고 부족 품목에 대해 추가 발주를 요청드립니다.',
+    `도미노피자 ${storeName}입니다.`,
+    '아래 품목에 대해 발주 요청드립니다.',
     '',
-  ];
-  const blocks = rows.map((row) => {
-    const unit = row.단위 ? ` (${row.단위})` : '';
-    return [
-      '■ 품목: ' + (row.품목 || '') + unit,
-      '  현재고: ' + row.현재고 + ' / 최소고: ' + row.최소고 + ' → 발주 권장: ' + row.발주권장 + (row.단위 ? row.단위 : '개'),
-      '',
-    ].join('\n');
-  });
-  const footer = [
-    '위 품목들은 필요 수량만큼 추가 발주 요청드립니다.',
+    itemList,
     '',
+    '첨부한 발주서 확인 부탁드립니다.',
     '감사합니다.',
-  ];
-  return header.join('\n') + blocks.join('') + footer.join('\n');
+    internalOwner,
+  ].join('\n');
+
+  return { subject, text: body };
 }
 
 module.exports = async (req, res) => {
@@ -84,7 +82,7 @@ module.exports = async (req, res) => {
     return;
   }
   const toList = Array.isArray(extraTo) ? extraTo : [extraTo];
-  const toEmails = [...new Set([...toList, 'peter901128@gmail.com'].filter((e) => e && String(e).includes('@')))];
+  const toEmails = [...new Set([...toList].filter((e) => e && String(e).includes('@')))];
   if (toEmails.length === 0) {
     res.status(400).json({ error: '수신 이메일이 없습니다.' });
     return;
@@ -96,6 +94,13 @@ module.exports = async (req, res) => {
     });
     return;
   }
+  const { subject, text } = buildEmailFromTemplate({
+    store_name: body.store_name,
+    supplier_name: body.supplier_name,
+    order_date: body.order_date,
+    internal_owner: body.internal_owner,
+    items,
+  });
   const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
@@ -103,26 +108,12 @@ module.exports = async (req, res) => {
     auth: { user: SENDER, pass: password },
   });
   try {
-    if (items.length === 1) {
-      const text = buildBodyForItem(items[0]);
-      await transporter.sendMail({
-        from: SENDER,
-        to: toEmails.join(', '),
-        subject: '[재고 발주] ' + (items[0].품목 || '품목') + ' - 추가 발주 요청',
-        text,
-      });
-    } else {
-      const text = buildBodyForItems(items);
-      const subject = items.length > 1
-        ? '[재고 발주] ' + items.length + '개 품목 - 추가 발주 요청'
-        : '[재고 발주] 추가 발주 요청';
-      await transporter.sendMail({
-        from: SENDER,
-        to: toEmails.join(', '),
-        subject,
-        text,
-      });
-    }
+    await transporter.sendMail({
+      from: SENDER,
+      to: toEmails.join(', '),
+      subject,
+      text,
+    });
     res.status(200).json({ ok: true, sent_to: toEmails, count: items.length });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message || '메일 발송 실패' });
