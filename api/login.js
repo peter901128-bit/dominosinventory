@@ -1,4 +1,9 @@
-const { getSign } = require('./auth-helper');
+const crypto = require('crypto');
+
+function getSign() {
+  const secret = process.env.TEAM_PASSWORD || '';
+  return crypto.createHmac('sha256', secret).update('verified').digest('hex');
+}
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {

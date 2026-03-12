@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "재고 발주 자동화 (Vercel)",
   "private": true,
+  "engines": {
+    "node": ">=18.x"
+  },
   "dependencies": {
     "nodemailer": "^6.9.0"
   }
