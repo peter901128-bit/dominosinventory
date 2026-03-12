@@ -62,6 +62,8 @@
     .btn:disabled { opacity: 0.7; cursor: not-allowed; }
     .btn-blue { background: var(--domino-blue); color: var(--white); }
     .btn-red { background: var(--domino-red); color: var(--white); }
+    .btn-row { white-space: nowrap; padding: 0.4rem 0.75rem; font-size: 0.85rem; }
+    table.inventory .supplier-email { min-width: 180px; padding: 0.4rem 0.5rem; font-size: 0.9rem; border: 1px solid var(--border); border-radius: 4px; }
     table.input-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-weight: 600; }
     table.input-table th, table.input-table td { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
     table.input-table th { color: var(--text-muted); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -122,7 +124,6 @@
           <thead>
             <tr>
               <th>품목</th>
-              <th>단위</th>
               <th>최소고</th>
               <th>현재 수량</th>
             </tr>
@@ -142,20 +143,16 @@
             <thead>
               <tr>
                 <th>품목</th>
-                <th>단위</th>
                 <th>현재고</th>
                 <th>최소고</th>
                 <th>발주 권장</th>
+                <th>발주처 이메일</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="lowStockBody"></tbody>
           </table>
-          <div class="extra-to">
-            <label>발주 수신처</label>
-            <input type="text" id="extraTo" value="peter901128@gmail.com" readonly>
-          </div>
-          <button type="button" class="btn btn-red" id="btnSend" style="margin-top:1rem;">발주 메일 보내기</button>
-          <div id="sendMsg" class="msg hidden"></div>
+          <div id="sendMsg" class="msg hidden" style="margin-top:1rem;"></div>
         </div>
         <p id="noLowStock" class="msg info hidden">재고 부족 품목이 없습니다.</p>
       </div>
@@ -190,7 +187,6 @@
       var lowStockSection = document.getElementById('lowStockSection');
       var lowStockBody = document.getElementById('lowStockBody');
       var noLowStock = document.getElementById('noLowStock');
-      var btnSend = document.getElementById('btnSend');
       var sendMsg = document.getElementById('sendMsg');
       var lastResult = null;
       var loadedItems = DEFAULT_PRODUCTS;
@@ -253,7 +249,6 @@
         itemsBody.innerHTML = items.map(function (item, i) {
           return '<tr data-idx="' + i + '">' +
             '<td class="readonly-cell">' + escapeHtml(item.품목) + '</td>' +
-            '<td class="readonly-cell">' + escapeHtml(item.단위) + '</td>' +
             '<td class="readonly-cell">' + item.최소고 + '</td>' +
             '<td><input type="number" class="qty" name="현재수량" min="0" placeholder="0" data-idx="' + i + '"></td>' +
             '</tr>';
@@ -288,8 +283,16 @@
         } else {
           lowStockSection.classList.remove('hidden');
           noLowStock.classList.add('hidden');
-          lowStockBody.innerHTML = lowStock.map(function (row) {
-            return '<tr><td>' + escapeHtml(row.품목) + '</td><td>' + escapeHtml(row.단위 || '-') + '</td><td class="low">' + row.현재고 + '</td><td>' + row.최소고 + '</td><td>' + row.발주권장 + '</td></tr>';
+          lowStockBody.innerHTML = lowStock.map(function (row, idx) {
+            var email = (row.이메일 || '').trim();
+            return '<tr data-idx="' + idx + '">' +
+              '<td>' + escapeHtml(row.품목) + '</td>' +
+              '<td class="low">' + row.현재고 + '</td>' +
+              '<td>' + row.최소고 + '</td>' +
+              '<td>' + row.발주권장 + '</td>' +
+              '<td><input type="text" class="supplier-email" placeholder="발주처 이메일" value="' + escapeHtml(email) + '" data-idx="' + idx + '"></td>' +
+              '<td><button type="button" class="btn btn-red btn-row" data-idx="' + idx + '">발주처에게 보내기</button></td>' +
+              '</tr>';
           }).join('');
         }
       }
@@ -307,26 +310,34 @@
 
       renderItemsTable(DEFAULT_PRODUCTS);
       btnAnalyze.addEventListener('click', analyze);
-      btnSend.addEventListener('click', function () {
-        if (!lastResult || !lastResult.low_stock || lastResult.low_stock.length === 0) {
-          showMsg(sendMsg, '발주할 품목이 없습니다.', 'error');
+
+      lowStockSection.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest('.btn-row');
+        if (!btn || !lastResult || !lastResult.low_stock) return;
+        var idx = parseInt(btn.getAttribute('data-idx'), 10);
+        var row = lastResult.low_stock[idx];
+        if (!row) return;
+        var emailInput = document.querySelector('#lowStockBody .supplier-email[data-idx="' + idx + '"]');
+        var toEmail = (emailInput && emailInput.value || '').trim();
+        if (!toEmail || toEmail.indexOf('@') === -1) {
+          showMsg(sendMsg, '해당 품목의 발주처 이메일을 입력하세요.', 'error');
           return;
         }
         hideMsg(sendMsg);
-        btnSend.disabled = true;
+        btn.disabled = true;
         fetch('/api/send-orders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ items: lastResult.low_stock, extra_to: ['peter901128@gmail.com'] })
+          body: JSON.stringify({ items: [row], extra_to: [toEmail] })
         })
           .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
           .then(function (r) {
-            if (r.ok) showMsg(sendMsg, 'peter901128@gmail.com 으로 발주 메일을 발송했습니다.', 'success');
+            if (r.ok) showMsg(sendMsg, '"' + row.품목 + '" 발주 메일을 ' + toEmail + ' 로 보냈습니다.', 'success');
             else showMsg(sendMsg, (r.data && r.data.error) || '발송 실패', 'error');
           })
           .catch(function (err) { showMsg(sendMsg, '발송 실패: ' + (err.message || '네트워크 오류'), 'error'); })
-          .then(function () { btnSend.disabled = false; });
+          .then(function () { btn.disabled = false; });
       });
 
       checkAuth();
