@@ -59,7 +59,9 @@ module.exports = async (req, res) => {
   }
   const password = (process.env.GMAIL_APP_PASSWORD || '').trim();
   if (!password) {
-    res.status(500).json({ error: 'GMAIL_APP_PASSWORD가 설정되지 않았습니다.' });
+    res.status(500).json({
+      error: 'GMAIL_APP_PASSWORD가 설정되지 않았습니다. Vercel 대시보드 → 프로젝트 → Settings → Environment Variables에서 GMAIL_APP_PASSWORD( Gmail 앱 비밀번호 )를 추가한 뒤 재배포하세요.',
+    });
     return;
   }
   const transporter = nodemailer.createTransport({
