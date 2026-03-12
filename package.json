@@ -1,0 +1,9 @@
+{
+  "name": "dominosinventory",
+  "version": "1.0.0",
+  "description": "재고 발주 자동화 (Vercel)",
+  "private": true,
+  "dependencies": {
+    "nodemailer": "^6.9.0"
+  }
+}

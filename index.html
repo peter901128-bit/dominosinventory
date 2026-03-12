@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>재고 발주 | Domino's Style</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --domino-blue: #0066CC;
+      --domino-blue-dark: #004C99;
+      --domino-red: #E31837;
+      --domino-red-dark: #B8142C;
+      --cream: #FFF8F0;
+      --white: #FFFFFF;
+      --text: #2C2C2C;
+      --text-muted: #5C5C5C;
+      --border: #E0D8D0;
+      --success: #0D8A3E;
+      --shadow: 0 2px 12px rgba(0,0,0,0.06);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Nunito', 'Malgun Gothic', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      padding: 0 0 3rem 0;
+    }
+    .header {
+      background: linear-gradient(135deg, var(--domino-blue) 0%, var(--domino-blue-dark) 100%);
+      color: var(--white);
+      padding: 1.5rem 2rem;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .logo { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; }
+    .logo span.red { color: var(--domino-red); }
+    .header-sub { font-size: 0.95rem; opacity: 0.95; margin-top: 0.35rem; font-weight: 600; }
+    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.25rem; }
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+    .card h2 { font-size: 1.15rem; font-weight: 700; margin: 0 0 1rem 0; color: var(--domino-blue); }
+    .btn {
+      font-family: inherit; font-weight: 700; border: none;
+      padding: 0.65rem 1.25rem; border-radius: var(--radius-sm);
+      cursor: pointer; font-size: 0.95rem;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+    .btn-blue { background: var(--domino-blue); color: var(--white); }
+    .btn-red { background: var(--domino-red); color: var(--white); }
+    table.input-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-weight: 600; }
+    table.input-table th, table.input-table td { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    table.input-table th { color: var(--text-muted); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    table.input-table input.qty { width: 100%; max-width: 100px; text-align: right; padding: 0.5rem; border: 2px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; }
+    table.input-table .readonly-cell { color: var(--text-muted); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .summary { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .summary .badge { background: var(--cream); padding: 0.5rem 1rem; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 700; color: var(--text); }
+    .summary .badge.blue { background: rgba(0,102,204,0.12); color: var(--domino-blue); }
+    .summary .badge.red { background: rgba(227,24,55,0.12); color: var(--domino-red); }
+    .summary .badge.green { background: rgba(13,138,62,0.12); color: var(--success); }
+    table.inventory { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-weight: 600; }
+    table.inventory th, table.inventory td { padding: 0.7rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    table.inventory th { color: var(--text-muted); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    table.inventory tbody tr:hover { background: var(--cream); }
+    table.inventory .low { color: var(--domino-red); }
+    .msg { padding: 0.85rem 1rem; border-radius: var(--radius-sm); margin-top: 1rem; font-weight: 600; }
+    .msg.error { background: rgba(227,24,55,0.12); color: var(--domino-red-dark); }
+    .msg.success { background: rgba(13,138,62,0.12); color: var(--success); }
+    .msg.info { background: rgba(0,102,204,0.12); color: var(--domino-blue); }
+    .extra-to { margin-top: 1.25rem; }
+    .extra-to label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.35rem; }
+    .extra-to input { width: 100%; padding: 0.6rem 0.75rem; border: 2px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: 0.95rem; }
+    .hidden { display: none !important; }
+    #loginScreen .card { max-width: 400px; margin: 3rem auto; }
+    #loginScreen label { display: block; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; }
+    #loginScreen input[type="password"] { width: 100%; padding: 0.75rem; border: 2px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: 1rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div id="loginScreen" class="hidden">
+    <header class="header">
+      <div class="logo">재고<span class="red">발주</span></div>
+      <div class="header-sub">팀 전용 재고 발주 시스템</div>
+    </header>
+    <div class="container">
+      <div class="card">
+        <h2>팀 비밀번호 입력</h2>
+        <p style="font-size:0.9rem; color: var(--text-muted); margin-bottom:1rem;">시스템 사용을 위해 팀 비밀번호를 입력하세요.</p>
+        <label for="teamPassword">비밀번호</label>
+        <input type="password" id="teamPassword" placeholder="비밀번호" autocomplete="current-password">
+        <div id="loginError" class="msg error hidden"></div>
+        <button type="button" class="btn btn-blue" id="btnLogin" style="width:100%;">입장</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="appScreen" class="hidden">
+    <header class="header">
+      <div class="logo">재고<span class="red">발주</span></div>
+      <div class="header-sub">웹에서 재고를 입력하고, 부족 품목 발주 메일까지 한 번에</div>
+    </header>
+    <div class="container">
+      <div class="card">
+        <h2>1. 재고 수량 입력</h2>
+        <p style="font-size:0.9rem; color: var(--text-muted); margin-bottom:1rem; font-weight:600;">제품별로 <strong>현재 수량만</strong> 입력한 뒤 분석하기를 누르세요.</p>
+        <table class="input-table">
+          <thead>
+            <tr>
+              <th>품목</th>
+              <th>단위</th>
+              <th>최소고</th>
+              <th>현재 수량</th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+        <div class="toolbar">
+          <button type="button" class="btn btn-blue" id="btnAnalyze">분석하기</button>
+        </div>
+        <div id="analyzeMsg" class="msg hidden"></div>
+      </div>
+      <div class="card hidden" id="resultCard">
+        <h2>2. 분석 결과</h2>
+        <div class="summary" id="summary"></div>
+        <div id="lowStockSection" class="hidden">
+          <table class="inventory">
+            <thead>
+              <tr>
+                <th>품목</th>
+                <th>단위</th>
+                <th>현재고</th>
+                <th>최소고</th>
+                <th>발주 권장</th>
+              </tr>
+            </thead>
+            <tbody id="lowStockBody"></tbody>
+          </table>
+          <div class="extra-to">
+            <label>발주 수신처</label>
+            <input type="text" id="extraTo" value="peter901128@gmail.com" readonly>
+          </div>
+          <button type="button" class="btn btn-red" id="btnSend" style="margin-top:1rem;">발주 메일 보내기</button>
+          <div id="sendMsg" class="msg hidden"></div>
+        </div>
+        <p id="noLowStock" class="msg info hidden">재고 부족 품목이 없습니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var DEFAULT_PRODUCTS = [
+        { 품목: '도우볼', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
+        { 품목: '토마토소스', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
+        { 품목: '모짜렐라치즈', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
+        { 품목: '페퍼로니', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
+        { 품목: '베이컨', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
+        { 품목: '양파', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
+        { 품목: '피망', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
+        { 품목: '양송이버섯', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
+        { 품목: '블랙올리브', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
+        { 품목: '스위트콘', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' }
+      ];
+
+      var loginScreen = document.getElementById('loginScreen');
+      var appScreen = document.getElementById('appScreen');
+      var teamPassword = document.getElementById('teamPassword');
+      var btnLogin = document.getElementById('btnLogin');
+      var loginError = document.getElementById('loginError');
+      var itemsBody = document.getElementById('itemsBody');
+      var btnAnalyze = document.getElementById('btnAnalyze');
+      var analyzeMsg = document.getElementById('analyzeMsg');
+      var resultCard = document.getElementById('resultCard');
+      var summaryEl = document.getElementById('summary');
+      var lowStockSection = document.getElementById('lowStockSection');
+      var lowStockBody = document.getElementById('lowStockBody');
+      var noLowStock = document.getElementById('noLowStock');
+      var btnSend = document.getElementById('btnSend');
+      var sendMsg = document.getElementById('sendMsg');
+      var lastResult = null;
+      var loadedItems = DEFAULT_PRODUCTS;
+
+      function showLogin() {
+        loginScreen.classList.remove('hidden');
+        appScreen.classList.add('hidden');
+      }
+      function showApp() {
+        loginScreen.classList.add('hidden');
+        appScreen.classList.remove('hidden');
+      }
+
+      function checkAuth() {
+        fetch('/api/me', { method: 'GET', credentials: 'include' })
+          .then(function (res) {
+            if (res.ok) showApp();
+            else showLogin();
+          })
+          .catch(function () { showLogin(); });
+      }
+
+      btnLogin.addEventListener('click', function () {
+        var pwd = (teamPassword.value || '').trim();
+        loginError.classList.add('hidden');
+        if (!pwd) {
+          loginError.textContent = '비밀번호를 입력하세요.';
+          loginError.classList.remove('hidden');
+          return;
+        }
+        btnLogin.disabled = true;
+        fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ password: pwd })
+        })
+          .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+          .then(function (r) {
+            if (r.ok) location.reload();
+            else {
+              loginError.textContent = (r.data && r.data.error) || '비밀번호가 올바르지 않습니다.';
+              loginError.classList.remove('hidden');
+            }
+          })
+          .catch(function () {
+            loginError.textContent = '연결할 수 없습니다.';
+            loginError.classList.remove('hidden');
+          })
+          .then(function () { btnLogin.disabled = false; });
+      });
+      teamPassword.addEventListener('keydown', function (e) { if (e.key === 'Enter') btnLogin.click(); });
+
+      function toNum(v) {
+        var n = parseFloat(v);
+        return isNaN(n) ? 0 : Math.max(0, Math.floor(n));
+      }
+      function renderItemsTable(items) {
+        loadedItems = items;
+        itemsBody.innerHTML = items.map(function (item, i) {
+          return '<tr data-idx="' + i + '">' +
+            '<td class="readonly-cell">' + escapeHtml(item.품목) + '</td>' +
+            '<td class="readonly-cell">' + escapeHtml(item.단위) + '</td>' +
+            '<td class="readonly-cell">' + item.최소고 + '</td>' +
+            '<td><input type="number" class="qty" name="현재수량" min="0" placeholder="0" data-idx="' + i + '"></td>' +
+            '</tr>';
+        }).join('');
+      }
+      function getInputData() {
+        var list = [];
+        loadedItems.forEach(function (item, i) {
+          var input = document.querySelector('#itemsBody input[data-idx="' + i + '"]');
+          var 현재고 = input ? toNum(input.value) : 0;
+          list.push({
+            품목: item.품목, 단위: item.단위, 현재고: 현재고, 최소고: item.최소고,
+            발주수량: item.발주수량, 이메일: item.이메일, 공급처: item.공급처
+          });
+        });
+        return list;
+      }
+      function analyze() {
+        hideMsg(analyzeMsg);
+        var list = getInputData();
+        var lowStock = list.filter(function (r) { return r.현재고 < r.최소고; });
+        lowStock.forEach(function (r) {
+          r.발주권장 = Math.max(r.최소고 - r.현재고, r.발주수량 || 0);
+        });
+        lastResult = { ok: true, low_stock: lowStock, summary: { 전체_품목수: list.length, 부족_품목수: lowStock.length, 정상_품목수: list.length - lowStock.length } };
+        resultCard.classList.remove('hidden');
+        var sum = lastResult.summary;
+        summaryEl.innerHTML = '<span class="badge blue">전체 ' + sum.전체_품목수 + '개</span><span class="badge red">재고 부족 ' + sum.부족_품목수 + '개</span><span class="badge green">정상 ' + sum.정상_품목수 + '개</span>';
+        if (lowStock.length === 0) {
+          lowStockSection.classList.add('hidden');
+          noLowStock.classList.remove('hidden');
+        } else {
+          lowStockSection.classList.remove('hidden');
+          noLowStock.classList.add('hidden');
+          lowStockBody.innerHTML = lowStock.map(function (row) {
+            return '<tr><td>' + escapeHtml(row.품목) + '</td><td>' + escapeHtml(row.단위 || '-') + '</td><td class="low">' + row.현재고 + '</td><td>' + row.최소고 + '</td><td>' + row.발주권장 + '</td></tr>';
+          }).join('');
+        }
+      }
+      function showMsg(el, text, type) {
+        el.textContent = text;
+        el.className = 'msg ' + type;
+        el.classList.remove('hidden');
+      }
+      function hideMsg(el) { el.classList.add('hidden'); }
+      function escapeHtml(s) {
+        var div = document.createElement('div');
+        div.textContent = s == null ? '' : s;
+        return div.innerHTML;
+      }
+
+      renderItemsTable(DEFAULT_PRODUCTS);
+      btnAnalyze.addEventListener('click', analyze);
+      btnSend.addEventListener('click', function () {
+        if (!lastResult || !lastResult.low_stock || lastResult.low_stock.length === 0) {
+          showMsg(sendMsg, '발주할 품목이 없습니다.', 'error');
+          return;
+        }
+        hideMsg(sendMsg);
+        btnSend.disabled = true;
+        fetch('/api/send-orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ items: lastResult.low_stock, extra_to: ['peter901128@gmail.com'] })
+        })
+          .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+          .then(function (r) {
+            if (r.ok) showMsg(sendMsg, 'peter901128@gmail.com 으로 발주 메일을 발송했습니다.', 'success');
+            else showMsg(sendMsg, (r.data && r.data.error) || '발송 실패', 'error');
+          })
+          .catch(function (err) { showMsg(sendMsg, '발송 실패: ' + (err.message || '네트워크 오류'), 'error'); })
+          .then(function () { btnSend.disabled = false; });
+      });
+
+      checkAuth();
+    })();
+  </script>
+</body>
+</html>
