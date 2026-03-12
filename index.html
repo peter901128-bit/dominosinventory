@@ -67,7 +67,7 @@
     .btn-row { white-space: nowrap; padding: 0.4rem 0.75rem; font-size: 0.85rem; }
     table.inventory .supplier-email { min-width: 180px; padding: 0.4rem 0.5rem; font-size: 0.9rem; border: 1px solid var(--border); border-radius: 4px; }
     .table-wrap { overflow-x: auto; }
-    table.input-table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 0.85rem; font-weight: 600; }
+    table.input-table { width: 100%; min-width: 400px; border-collapse: collapse; font-size: 0.9rem; font-weight: 600; }
     table.input-table th, table.input-table td { padding: 0.5rem 0.5rem; text-align: left; border-bottom: 1px solid var(--border); }
     table.input-table th { color: var(--text-muted); font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
     table.input-table input.qty { width: 70px; text-align: right; padding: 0.4rem; border: 2px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; }
@@ -85,15 +85,21 @@
     }
     .dashboard-summary .summary-tile .value { font-size: 1.75rem; font-weight: 800; color: var(--domino-blue); display: block; }
     .dashboard-summary .summary-tile .label { font-size: 0.85rem; color: var(--text-muted); font-weight: 700; margin-top: 0.25rem; }
-    .low-stock-list { margin-bottom: 1.5rem; }
-    .low-stock-list h3 { font-size: 1rem; font-weight: 700; color: var(--domino-blue); margin: 0 0 0.75rem 0; }
-    .low-stock-list .low-stock-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .low-stock-list .low-stock-tag {
-      display: inline-flex; align-items: center; gap: 0.35rem;
-      background: rgba(227,24,55,0.1); color: var(--domino-red); padding: 0.4rem 0.75rem;
-      border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 600;
+    .low-stock-by-supplier { margin-bottom: 1.5rem; }
+    .low-stock-by-supplier h3 { font-size: 1rem; font-weight: 700; color: var(--domino-blue); margin: 0 0 0.75rem 0; }
+    .supplier-summary-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .supplier-summary-block {
+      background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1rem; box-shadow: var(--shadow);
     }
-    .low-stock-list .low-stock-tag .tag-icon { font-size: 1.1rem; }
+    .supplier-summary-block .supplier-summary-name { font-size: 1rem; font-weight: 700; color: var(--domino-blue); margin-bottom: 0.5rem; }
+    .supplier-summary-block .supplier-summary-items { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .supplier-summary-block .item-tag {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      background: rgba(227,24,55,0.1); color: var(--domino-red); padding: 0.35rem 0.6rem;
+      border-radius: var(--radius-sm); font-size: 0.85rem; font-weight: 600;
+    }
+    .supplier-summary-block .item-tag .tag-icon { font-size: 1rem; }
     .supplier-cards { display: flex; flex-direction: column; gap: 1rem; }
     .supplier-card {
       background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
@@ -170,8 +176,8 @@
     </header>
     <div class="container">
       <div class="card">
-        <h2>1. 재고 수량 입력 (Inventory)</h2>
-        <p style="font-size:0.9rem; color: var(--text-muted); margin-bottom:1rem; font-weight:600;">제품별 <strong>현재재고</strong>만 입력한 뒤 분석하기를 누르세요. 안전재고·MOQ·거래처 등은 기준 데이터입니다.</p>
+        <h2>1. 재고 수량 입력</h2>
+        <p style="font-size:0.9rem; color: var(--text-muted); margin-bottom:1rem; font-weight:600;"><strong>현재 수량</strong>만 입력한 뒤 분석하기를 누르세요.</p>
         <div class="table-wrap">
         <table class="input-table">
           <thead>
@@ -180,11 +186,6 @@
               <th>규격</th>
               <th>단위</th>
               <th>안전재고</th>
-              <th>MOQ</th>
-              <th>거래처</th>
-              <th>담당자</th>
-              <th>리드타임(일)</th>
-              <th>품목군</th>
               <th>현재 수량</th>
             </tr>
           </thead>
@@ -199,11 +200,12 @@
       <div class="card hidden" id="resultCard">
         <h2>2. 분석 결과 대시보드</h2>
         <div id="summary" class="dashboard-summary hidden"></div>
-        <div id="lowStockItemsSection" class="low-stock-list hidden">
-          <h3>발주 필요한 항목</h3>
-          <div id="lowStockItemsList" class="low-stock-tags"></div>
+        <div id="lowStockItemsSection" class="low-stock-by-supplier hidden">
+          <h3>발주 필요한 항목 (거래처별)</h3>
+          <div id="lowStockItemsList" class="supplier-summary-list"></div>
         </div>
         <div id="lowStockSection" class="hidden">
+          <h3 style="font-size:1rem; font-weight:700; color:var(--domino-blue); margin:0 0 0.75rem 0;">발주처별 메일 발송</h3>
           <div id="lowStockBody" class="supplier-cards"></div>
           <div id="sendMsg" class="msg hidden" style="margin-top:1rem;"></div>
         </div>
@@ -313,11 +315,6 @@
             '<td class="readonly-cell">' + escapeHtml(item.규격 || '') + '</td>' +
             '<td class="readonly-cell">' + escapeHtml(item.단위 || '') + '</td>' +
             '<td class="readonly-cell">' + (item.안전재고 ?? '') + '</td>' +
-            '<td class="readonly-cell">' + (item.MOQ ?? '') + '</td>' +
-            '<td class="readonly-cell">' + escapeHtml(item.거래처 || '') + '</td>' +
-            '<td class="readonly-cell">' + escapeHtml(item.담당자 || '') + '</td>' +
-            '<td class="readonly-cell">' + (item.리드타임 ?? '') + '</td>' +
-            '<td class="readonly-cell">' + escapeHtml(item.품목군 || '') + '</td>' +
             '<td><input type="number" class="qty" name="현재수량" min="0" placeholder="0" data-idx="' + i + '"></td>' +
             '</tr>';
         }).join('');
@@ -380,10 +377,16 @@
           noLowStock.classList.remove('hidden');
         } else {
           lowStockItemsSection.classList.remove('hidden');
-          lowStockItemsList.innerHTML = lowStock.map(function (row) {
-            var icon = getIcon(row.품목);
-            var info = row.품목 + ' | 현재 ' + row.현재고 + (row.단위 || '') + ' / 안전 ' + row.안전재고 + ' / MOQ ' + (row.MOQ || '') + ' | 권장발주 ' + row.발주권장 + (row.단위 || '');
-            return '<span class="low-stock-tag" title="' + escapeHtml(info) + '"><span class="tag-icon">' + icon + '</span> ' + escapeHtml(row.품목) + ' · ' + (row.거래처 || '') + ' · ' + (row.품목군 || '') + ' (권장 ' + row.발주권장 + (row.단위 || '') + ')</span>';
+          lowStockItemsList.innerHTML = supplierList.map(function (sup) {
+            var itemsHtml = sup.items.map(function (row) {
+              var icon = getIcon(row.품목);
+              var u = row.단위 || '';
+              return '<span class="item-tag"><span class="tag-icon">' + icon + '</span> ' + escapeHtml(row.품목) + ' (권장 ' + row.발주권장 + u + ')</span>';
+            }).join('');
+            return '<div class="supplier-summary-block">' +
+              '<div class="supplier-summary-name">' + escapeHtml(sup.거래처명) + '</div>' +
+              '<div class="supplier-summary-items">' + itemsHtml + '</div>' +
+              '</div>';
           }).join('');
           lowStockSection.classList.remove('hidden');
           noLowStock.classList.add('hidden');
