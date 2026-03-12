@@ -62,6 +62,8 @@
     .btn:disabled { opacity: 0.7; cursor: not-allowed; }
     .btn-blue { background: var(--domino-blue); color: var(--white); }
     .btn-red { background: var(--domino-red); color: var(--white); }
+    .btn-done { background: #0D8A3E; color: var(--white); cursor: default; }
+    .btn-done:hover { filter: none; transform: none; }
     .btn-row { white-space: nowrap; padding: 0.4rem 0.75rem; font-size: 0.85rem; }
     table.inventory .supplier-email { min-width: 180px; padding: 0.4rem 0.5rem; font-size: 0.9rem; border: 1px solid var(--border); border-radius: 4px; }
     table.input-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-weight: 600; }
@@ -333,11 +335,17 @@
         })
           .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
           .then(function (r) {
-            if (r.ok) showMsg(sendMsg, '"' + row.품목 + '" 발주 메일을 ' + toEmail + ' 로 보냈습니다.', 'success');
-            else showMsg(sendMsg, (r.data && r.data.error) || '발송 실패', 'error');
+            if (r.ok) {
+              btn.textContent = '발송 완료';
+              btn.className = 'btn btn-done btn-row';
+              btn.disabled = true;
+              showMsg(sendMsg, '"' + row.품목 + '" 발주 메일을 ' + toEmail + ' 로 보냈습니다.', 'success');
+            } else {
+              showMsg(sendMsg, (r.data && r.data.error) || '발송 실패', 'error');
+            }
           })
           .catch(function (err) { showMsg(sendMsg, '발송 실패: ' + (err.message || '네트워크 오류'), 'error'); })
-          .then(function () { btn.disabled = false; });
+          .then(function () { if (!btn.disabled) btn.disabled = false; });
       });
 
       checkAuth();
