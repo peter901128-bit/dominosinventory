@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>재고 발주 | Domino's Style</title>
+  <title>DOMINOS PIZZA INVENTORY ORDERING SYSTEM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -93,12 +93,32 @@
     #loginScreen .card { max-width: 400px; margin: 3rem auto; }
     #loginScreen label { display: block; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; }
     #loginScreen input[type="password"] { width: 100%; padding: 0.75rem; border: 2px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: 1rem; margin-bottom: 1rem; }
+    .item-icon { font-size: 1.5rem; line-height: 1; vertical-align: middle; }
+    .dashboard { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .dashboard-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .dashboard-card .card-head { display: flex; align-items: center; gap: 0.75rem; }
+    .dashboard-card .card-icon { font-size: 2.5rem; line-height: 1; }
+    .dashboard-card .card-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .dashboard-card .card-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; font-size: 0.85rem; }
+    .dashboard-card .stat { background: var(--cream); padding: 0.5rem; border-radius: var(--radius-sm); text-align: center; }
+    .dashboard-card .stat span { display: block; color: var(--text-muted); font-size: 0.7rem; }
+    .dashboard-card .stat.low { color: var(--domino-red); font-weight: 700; }
+    .dashboard-card .supplier-email { width: 100%; padding: 0.5rem 0.6rem; font-size: 0.9rem; border: 1px solid var(--border); border-radius: 4px; }
   </style>
 </head>
 <body>
   <div id="loginScreen" class="hidden">
     <header class="header">
-      <div class="logo">재고<span class="red">발주</span></div>
+      <div class="logo">DOMINOS PIZZA <span class="red">INVENTORY ORDERING SYSTEM</span></div>
       <div class="header-sub">팀 전용 재고 발주 시스템</div>
     </header>
     <div class="container">
@@ -115,7 +135,7 @@
 
   <div id="appScreen" class="hidden">
     <header class="header">
-      <div class="logo">재고<span class="red">발주</span></div>
+      <div class="logo">DOMINOS PIZZA <span class="red">INVENTORY ORDERING SYSTEM</span></div>
       <div class="header-sub">웹에서 재고를 입력하고, 부족 품목 발주 메일까지 한 번에</div>
     </header>
     <div class="container">
@@ -138,22 +158,10 @@
         <div id="analyzeMsg" class="msg hidden"></div>
       </div>
       <div class="card hidden" id="resultCard">
-        <h2>2. 분석 결과</h2>
+        <h2>2. 분석 결과 대시보드</h2>
         <div class="summary" id="summary"></div>
         <div id="lowStockSection" class="hidden">
-          <table class="inventory">
-            <thead>
-              <tr>
-                <th>품목</th>
-                <th>현재고</th>
-                <th>최소고</th>
-                <th>발주 권장</th>
-                <th>발주처 이메일</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="lowStockBody"></tbody>
-          </table>
+          <div id="lowStockBody" class="dashboard"></div>
           <div id="sendMsg" class="msg hidden" style="margin-top:1rem;"></div>
         </div>
         <p id="noLowStock" class="msg info hidden">재고 부족 품목이 없습니다.</p>
@@ -163,6 +171,11 @@
 
   <script>
     (function () {
+      var ITEM_ICONS = {
+        '도우볼': '🍞', '토마토소스': '🍅', '모짜렐라치즈': '🧀', '페퍼로니': '🌶️', '베이컨': '🥓',
+        '양파': '🧅', '피망': '🫑', '양송이버섯': '🍄', '블랙올리브': '🫒', '스위트콘': '🌽'
+      };
+      function getIcon(name) { return ITEM_ICONS[name] || '📦'; }
       var DEFAULT_PRODUCTS = [
         { 품목: '도우볼', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
         { 품목: '토마토소스', 단위: '개', 최소고: 10, 발주수량: 20, 이메일: '', 공급처: '' },
@@ -249,8 +262,9 @@
       function renderItemsTable(items) {
         loadedItems = items;
         itemsBody.innerHTML = items.map(function (item, i) {
+          var icon = getIcon(item.품목);
           return '<tr data-idx="' + i + '">' +
-            '<td class="readonly-cell">' + escapeHtml(item.품목) + '</td>' +
+            '<td class="readonly-cell"><span class="item-icon">' + icon + '</span> ' + escapeHtml(item.품목) + '</td>' +
             '<td class="readonly-cell">' + item.최소고 + '</td>' +
             '<td><input type="number" class="qty" name="현재수량" min="0" placeholder="0" data-idx="' + i + '"></td>' +
             '</tr>';
@@ -287,14 +301,20 @@
           noLowStock.classList.add('hidden');
           lowStockBody.innerHTML = lowStock.map(function (row, idx) {
             var email = (row.이메일 || '').trim() || 'peter901128@gmail.com';
-            return '<tr data-idx="' + idx + '">' +
-              '<td>' + escapeHtml(row.품목) + '</td>' +
-              '<td class="low">' + row.현재고 + '</td>' +
-              '<td>' + row.최소고 + '</td>' +
-              '<td>' + row.발주권장 + '</td>' +
-              '<td><input type="text" class="supplier-email" placeholder="발주처 이메일" value="' + escapeHtml(email) + '" data-idx="' + idx + '"></td>' +
-              '<td><button type="button" class="btn btn-red btn-row" data-idx="' + idx + '">발주처에게 보내기</button></td>' +
-              '</tr>';
+            var icon = getIcon(row.품목);
+            return '<div class="dashboard-card" data-idx="' + idx + '">' +
+              '<div class="card-head">' +
+              '<span class="card-icon">' + icon + '</span>' +
+              '<span class="card-title">' + escapeHtml(row.품목) + '</span>' +
+              '</div>' +
+              '<div class="card-stats">' +
+              '<div class="stat low"><span>현재고</span>' + row.현재고 + '</div>' +
+              '<div class="stat"><span>최소고</span>' + row.최소고 + '</div>' +
+              '<div class="stat"><span>발주 권장</span>' + row.발주권장 + '</div>' +
+              '</div>' +
+              '<input type="text" class="supplier-email" placeholder="발주처 이메일" value="' + escapeHtml(email) + '" data-idx="' + idx + '">' +
+              '<button type="button" class="btn btn-red btn-row" data-idx="' + idx + '">발주처에게 보내기</button>' +
+              '</div>';
           }).join('');
         }
       }
@@ -319,7 +339,8 @@
         var idx = parseInt(btn.getAttribute('data-idx'), 10);
         var row = lastResult.low_stock[idx];
         if (!row) return;
-        var emailInput = document.querySelector('#lowStockBody .supplier-email[data-idx="' + idx + '"]');
+        var card = document.querySelector('#lowStockBody .dashboard-card[data-idx="' + idx + '"]');
+        var emailInput = card && card.querySelector('.supplier-email');
         var toEmail = (emailInput && emailInput.value || '').trim();
         if (!toEmail || toEmail.indexOf('@') === -1) {
           showMsg(sendMsg, '해당 품목의 발주처 이메일을 입력하세요.', 'error');
